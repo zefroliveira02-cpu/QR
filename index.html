@@ -1,9 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Test</title>
+  <title>Event QR Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
-  <h1>Hello from GitHub Pages!</h1>
+  <h1>QR Scanner</h1>
+  
+  <!-- This is where the live camera + scanner will appear -->
+  <div id="reader" style="width:300px; margin:auto;"></div>
+  
+  <script>
+    // Replace with your Apps Script Web App URL
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbx8NXGqDvnIUnmqWi4ldsxQ7g6-53UHMph62tBoSXY/dev";
+
+    function sendScan(ticket) {
+      fetch(webAppUrl, {
+        method: "POST",
+        body: JSON.stringify({
+          ticket: ticket,
+          device: "Gate1"
+        })
+      })
+      .then(res => res.text())
+      .then(txt => console.log("Server says:", txt))
+      .catch(err => console.error("Error sending scan:", err));
+    }
+
+    function onScanSuccess(decodedText) {
+      alert("Scanned: " + decodedText);
+      sendScan(decodedText);
+    }
+
+    function onScanFailure(error) {
+      // Ignored — happens constantly while scanning
+    }
+
+    // Start scanner
+    let scanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: 250 }
+    );
+    scanner.render(onScanSuccess, onScanFailure);
+  </script>
 </body>
 </html>
