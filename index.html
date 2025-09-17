@@ -1,43 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Event QR Scanner</title>
+  <title>QR Scanner Test</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    #reader { width: 300px; margin: 20px auto; }
+  </style>
 </head>
 <body>
-  <h1>QR Scanner</h1>
-  
-  <!-- This is where the live camera + scanner will appear -->
-  <div id="reader" style="width:300px; margin:auto;"></div>
-  
+  <h1>QR Scanner Test</h1>
+
+  <!-- Live QR reader -->
+  <div id="reader"></div>
+
+  <!-- Output -->
+  <p id="result">Waiting for scan...</p>
+
   <script>
-    // Replace with your Apps Script Web App URL
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbx8NXGqDvnIUnmqWi4ldsxQ7g6-53UHMph62tBoSXY/dev";
-
-    function sendScan(ticket) {
-      fetch(webAppUrl, {
-        method: "POST",
-        body: JSON.stringify({
-          ticket: ticket,
-          device: "Gate1"
-        })
-      })
-      .then(res => res.text())
-      .then(txt => console.log("Server says:", txt))
-      .catch(err => console.error("Error sending scan:", err));
-    }
-
     function onScanSuccess(decodedText) {
-      alert("Scanned: " + decodedText);
-      sendScan(decodedText);
+      document.getElementById("result").innerText = "Scanned: " + decodedText;
     }
 
     function onScanFailure(error) {
-      // Ignored — happens constantly while scanning
+      // ignore errors, happens all the time during scanning
     }
 
-    // Start scanner
     let scanner = new Html5QrcodeScanner(
       "reader",
       { fps: 10, qrbox: 250 }
