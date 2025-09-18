@@ -1,52 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Event QR Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-    #reader { width: 300px; margin: 20px auto; }
+    #reader { width: 320px; margin: auto; }
+    #status { margin-top: 15px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>Event QR Scanner</h1>
-
+  <h1>QR Code Scanner</h1>
   <div id="reader"></div>
-  <p id="result">Waiting for scan...</p>
+  <p id="status">Waiting for scan...</p>
 
   <script>
-    // 👇 Replace this with your Google Apps Script Web App URL
     const webAppUrl = "https://script.google.com/macros/s/AKfycbzEon5XHOdRBAsKxCuItzzvdbrlNS2T2KRVmIbstC73ynzdsQL_BhfXQ_HnJqcyopFW/exec";
 
+    // Send scan result to Google Apps Script
     function sendScan(ticket) {
       fetch(webAppUrl, {
         method: "POST",
-        body: JSON.stringify({ ticket: ticket }),
+        body: JSON.stringify({ ticket: ticket, device: "GitHubPage" }),
         headers: { "Content-Type": "application/json" }
       })
       .then(res => res.text())
       .then(txt => {
-        document.getElementById("result").innerText = "Sent: " + ticket;
-        console.log("Server says:", txt);
+        console.log("Server response:", txt);
+        document.getElementById("status").textContent = "✅ Sent: " + ticket;
       })
-      .catch(err => console.error("Error sending scan:", err));
+      .catch(err => {
+        console.error("Error:", err);
+        document.getElementById("status").textContent = "❌ Error sending scan!";
+      });
     }
 
-    function onScanSuccess(decodedText) {
-      document.getElementById("result").innerText = "Scanned: " + decodedText;
+    // Start camera scanner
+    function onScanSuccess(decodedText, decodedResult) {
+      console.log(`Code matched = ${decodedText}`, decodedResult);
+      document.getElementById("status").textContent = "📷 Scanned: " + decodedText;
       sendScan(decodedText);
     }
 
     function onScanFailure(error) {
-      // ignored
+      // Ignore scan errors
     }
 
-    let scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: 250 }
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" }, // back camera
+      { fps: 10, qrbox: 250 },
+      onScanSuccess,
+      onScanFailure
     );
-    scanner.render(onScanSuccess, onScanFailure);
   </script>
 </body>
+</html>
+
 </html>
