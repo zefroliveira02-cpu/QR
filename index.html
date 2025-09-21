@@ -9,13 +9,19 @@
     #reader { width: 350px; margin: auto; }
     #log { margin-top: 20px; font-weight: bold; }
 
-    /* Flash overlay */
+    /* Flash overlay with text */
     #flash {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: transparent;
       pointer-events: none;
       opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3em;
+      font-weight: bold;
+      color: white;
       z-index: 9999;
     }
   </style>
@@ -49,18 +55,14 @@
     function flash(success = true) {
       const flashEl = document.getElementById("flash");
       flashEl.style.background = success ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
+      flashEl.textContent = success ? "✅ Successful Scan" : "❌ Scan Failed";
       flashEl.style.opacity = "1";
 
-      // Fade out after 200ms
+      // Hide after 500ms
       setTimeout(() => {
-        flashEl.style.transition = "opacity 0.5s ease-out";
         flashEl.style.opacity = "0";
-      }, 200);
-
-      // Reset transition for next flash
-      setTimeout(() => {
-        flashEl.style.transition = "none";
-      }, 800);
+        flashEl.textContent = ""; // clear message
+      }, 500);
     }
 
     function logScan(ticket) {
@@ -97,7 +99,7 @@
     }
 
     function onScanFailure(error) {
-      // ignore
+      // ignore scanning errors
     }
 
     const html5QrcodeScanner = new Html5QrcodeScanner("reader",
