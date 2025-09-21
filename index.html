@@ -19,7 +19,24 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLnrXXIhSPqF4yrSzyQajrU6VtNGfy2OXQh1T20id8LlvK0pL6GAGWUcTRHVgchkqY/exec";
 
     let html5Qr;
+    let lastCode = "";
+    let lastTime = 0;
+    const DEBOUNCE_MS = 3000; // 3 seconds
     let isRestarting = false;
+
+    // Simple beep
+    function beep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = 800;
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    }
 
     function logScan(ticket) {
       const url = `${WEB_APP_URL}?ticket=${encodeURIComponent(ticket)}&device=Scanner1`;
@@ -37,10 +54,20 @@
     }
 
     function onScanSuccess(decodedText) {
-      if (isRestarting) return; // prevent double triggers
+      const now = Date.now();
+
+      // Ignore duplicate within debounce window
+      if (decodedText === lastCode && (now - lastTime) < DEBOUNCE_MS) {
+        return;
+      }
+      lastCode = decodedText;
+      lastTime = now;
+
+      if (isRestarting) return;
       isRestarting = true;
 
       html5Qr.stop().then(() => {
+        beep();
         document.getElementById("log").textContent = `Scanned: ${decodedText}`;
         logScan(decodedText);
 
@@ -56,7 +83,7 @@
     }
 
     function onScanFailure(error) {
-      // ignore
+      // ignore errors
     }
 
     function startScanner() {
