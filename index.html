@@ -8,13 +8,14 @@
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     #reader { width: 350px; margin: auto; }
     #log { margin-top: 20px; font-weight: bold; }
+
+    /* Flash overlay */
     #flash {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: transparent;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.3s ease-out;
       z-index: 9999;
     }
   </style>
@@ -47,11 +48,19 @@
 
     function flash(success = true) {
       const flashEl = document.getElementById("flash");
-      flashEl.style.background = success ? "rgba(0,255,0,0.5)" : "rgba(255,0,0,0.5)";
+      flashEl.style.background = success ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
       flashEl.style.opacity = "1";
+
+      // Fade out after 200ms
       setTimeout(() => {
+        flashEl.style.transition = "opacity 0.5s ease-out";
         flashEl.style.opacity = "0";
-      }, 300);
+      }, 200);
+
+      // Reset transition for next flash
+      setTimeout(() => {
+        flashEl.style.transition = "none";
+      }, 800);
     }
 
     function logScan(ticket) {
