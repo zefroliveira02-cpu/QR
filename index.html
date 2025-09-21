@@ -92,31 +92,33 @@
       }).catch(err => console.error("Failed to stop scanner", err));
     }
 
-    function startScanner() {
-      if (!html5Qr) {
-        html5Qr = new Html5Qrcode("reader");
-      }
-      if (currentCameraId) {
-        html5Qr.start(
-          currentCameraId,
-          { fps: 10, qrbox: 250 },
-          onScanSuccess,
-          () => { /* ignore scan failures */ }
-        );
-      } else {
-        // First time: get camera ID
-        Html5Qrcode.getCameras().then(devices => {
-          if (devices && devices.length) {
-            currentCameraId = devices[0].id;
-            html5Qr.start(
-              currentCameraId,
-              { fps: 10, qrbox: 250 },
-              onScanSuccess,
-              () => { }
-            );
-          }
-        }).catch(err => console.error("No cameras found", err));
-      }
+function startScanner() {
+  if (!html5Qr) {
+    html5Qr = new Html5Qrcode("reader");
+  }
+
+  Html5Qrcode.getCameras().then(devices => {
+    if (devices && devices.length) {
+      // Try to find a back camera
+      const backCam = devices.find(d =>
+        d.label.toLowerCase().includes("back") ||
+        d.label.toLowerCase().includes("environment")
+      );
+
+      currentCameraId = backCam ? backCam.id : devices[0].id;
+
+      html5Qr.start(
+        currentCameraId,
+        { fps: 10, qrbox: 250 },
+        onScanSuccess,
+        () => { /* ignore scan failures */ }
+      );
+    } else {
+      console.error("No cameras found");
+      document.getElementById("log").textContent = "❌ No cameras found";
+    }
+  }).catch(err => console.error("Camera error", err));
+}
     }
 
     window.onload = () => {
