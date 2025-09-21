@@ -8,34 +8,50 @@
     body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
     #reader { width: 350px; margin: auto; }
     #log { margin-top: 20px; font-weight: bold; }
+    #flash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: transparent;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+      z-index: 9999;
+    }
   </style>
 </head>
 <body>
   <h1>QR Scanner</h1>
   <div id="reader"></div>
   <div id="log">Waiting for scan...</div>
+  <div id="flash"></div>
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLnrXXIhSPqF4yrSzyQajrU6VtNGfy2OXQh1T20id8LlvK0pL6GAGWUcTRHVgchkqY/exec";
 
-    let html5Qr;
     let lastCode = "";
     let lastTime = 0;
     const DEBOUNCE_MS = 3000; // 3 seconds
-    let isRestarting = false;
 
-    // Simple beep
-    function beep() {
+    function beep(success = true) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.type = "sine";
-      osc.frequency.value = 800;
+      osc.frequency.value = success ? 800 : 200;
       gain.gain.setValueAtTime(0.1, ctx.currentTime);
       osc.start();
       osc.stop(ctx.currentTime + 0.2);
+    }
+
+    function flash(success = true) {
+      const flashEl = document.getElementById("flash");
+      flashEl.style.background = success ? "rgba(0,255,0,0.5)" : "rgba(255,0,0,0.5)";
+      flashEl.style.opacity = "1";
+      setTimeout(() => {
+        flashEl.style.opacity = "0";
+      }, 300);
     }
 
     function logScan(ticket) {
@@ -45,10 +61,14 @@
         .then(r => r.text())
         .then(txt => {
           document.getElementById("log").textContent = `✅ Sent: ${ticket}`;
+          beep(true);
+          flash(true);
           console.log("Server response:", txt);
         })
         .catch(err => {
           document.getElementById("log").textContent = "❌ Error sending scan";
+          beep(false);
+          flash(false);
           console.error(err);
         });
     }
@@ -56,52 +76,24 @@
     function onScanSuccess(decodedText) {
       const now = Date.now();
 
-      // Ignore duplicate within debounce window
       if (decodedText === lastCode && (now - lastTime) < DEBOUNCE_MS) {
-        return;
+        return; // ignore duplicates
       }
+
       lastCode = decodedText;
       lastTime = now;
 
-      if (isRestarting) return;
-      isRestarting = true;
-
-      html5Qr.stop().then(() => {
-        beep();
-        document.getElementById("log").textContent = `Scanned: ${decodedText}`;
-        logScan(decodedText);
-
-        // Auto-resume after 2 seconds
-        setTimeout(() => {
-          startScanner();
-          isRestarting = false;
-        }, 2000);
-      }).catch(err => {
-        console.error("Error stopping scanner:", err);
-        isRestarting = false;
-      });
+      document.getElementById("log").textContent = `Scanned: ${decodedText}`;
+      logScan(decodedText);
     }
 
     function onScanFailure(error) {
-      // ignore errors
+      // ignore
     }
 
-    function startScanner() {
-      html5Qr = new Html5Qrcode("reader");
-      html5Qr.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        onScanSuccess,
-        onScanFailure
-      ).catch(err => {
-        console.error("Unable to start scanner:", err);
-      });
-
-      document.getElementById("log").textContent = "Waiting for scan...";
-    }
-
-    // Start on load
-    startScanner();
+    const html5QrcodeScanner = new Html5QrcodeScanner("reader",
+      { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
   </script>
 </body>
 </html>
