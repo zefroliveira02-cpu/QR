@@ -9,7 +9,7 @@
     #reader { width: 350px; margin: auto; }
     #log { margin-top: 20px; font-weight: bold; }
 
-    /* Flash overlay with text */
+    /* Flash overlay */
     #flash {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -23,6 +23,7 @@
       font-weight: bold;
       color: white;
       z-index: 9999;
+      transition: opacity 0.2s ease-in-out;
     }
   </style>
 </head>
@@ -34,10 +35,7 @@
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLnrXXIhSPqF4yrSzyQajrU6VtNGfy2OXQh1T20id8LlvK0pL6GAGWUcTRHVgchkqY/exec";
-
-    let lastCode = "";
-    let lastTime = 0;
-    const DEBOUNCE_MS = 3000; // 3 seconds
+    let scanner; // global reference
 
     function beep(success = true) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -57,12 +55,10 @@
       flashEl.style.background = success ? "rgba(0,255,0,0.6)" : "rgba(255,0,0,0.6)";
       flashEl.textContent = success ? "✅ Successful Scan" : "❌ Scan Failed";
       flashEl.style.opacity = "1";
-
-      // Hide after 500ms
       setTimeout(() => {
         flashEl.style.opacity = "0";
-        flashEl.textContent = ""; // clear message
-      }, 500);
+        flashEl.textContent = "";
+      }, 600);
     }
 
     function logScan(ticket) {
@@ -74,37 +70,34 @@
           document.getElementById("log").textContent = `✅ Sent: ${ticket}`;
           beep(true);
           flash(true);
-          console.log("Server response:", txt);
         })
         .catch(err => {
           document.getElementById("log").textContent = "❌ Error sending scan";
           beep(false);
           flash(false);
           console.error(err);
+        })
+        .finally(() => {
+          // Restart scanner after short pause
+          setTimeout(startScanner, 1000);
         });
     }
 
     function onScanSuccess(decodedText) {
-      const now = Date.now();
-
-      if (decodedText === lastCode && (now - lastTime) < DEBOUNCE_MS) {
-        return; // ignore duplicates
-      }
-
-      lastCode = decodedText;
-      lastTime = now;
-
-      document.getElementById("log").textContent = `Scanned: ${decodedText}`;
-      logScan(decodedText);
+      // Stop scanner immediately to avoid duplicates
+      scanner.clear().then(() => {
+        logScan(decodedText);
+      }).catch(err => console.error("Failed to stop scanner", err));
     }
 
-    function onScanFailure(error) {
-      // ignore scanning errors
+    function startScanner() {
+      scanner.render(onScanSuccess, () => { /* ignore failures */ });
     }
 
-    const html5QrcodeScanner = new Html5QrcodeScanner("reader",
-      { fps: 10, qrbox: 250 });
-    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    window.onload = () => {
+      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+      startScanner();
+    };
   </script>
 </body>
 </html>
