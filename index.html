@@ -16,8 +16,11 @@
   <div id="log">Waiting for scan...</div>
 
   <script>
-    // ✅ Your Web App URL
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLnrXXIhSPqF4yrSzyQajrU6VtNGfy2OXQh1T20id8LlvK0pL6GAGWUcTRHVgchkqY/exec";
+
+    let lastScanned = "";
+    let lastTime = 0;
+    const DEBOUNCE_MS = 5000; // ignore duplicate scans within 5 seconds
 
     function logScan(ticket) {
       const url = `${WEB_APP_URL}?ticket=${encodeURIComponent(ticket)}&device=Scanner1`;
@@ -35,11 +38,17 @@
     }
 
     function onScanSuccess(decodedText) {
+      const now = Date.now();
+      if (decodedText === lastScanned && (now - lastTime) < DEBOUNCE_MS) {
+        return; // ignore duplicates within debounce window
+      }
+      lastScanned = decodedText;
+      lastTime = now;
       logScan(decodedText);
     }
 
     function onScanFailure(error) {
-      // Fail silently, scanner retries automatically
+      // Fail silently
     }
 
     const html5QrcodeScanner = new Html5QrcodeScanner("reader",
