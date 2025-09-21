@@ -35,7 +35,9 @@
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxLnrXXIhSPqF4yrSzyQajrU6VtNGfy2OXQh1T20id8LlvK0pL6GAGWUcTRHVgchkqY/exec";
-    let scanner; // global reference
+
+    let html5Qr;
+    let currentCameraId = null;
 
     function beep(success = true) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -84,18 +86,40 @@
     }
 
     function onScanSuccess(decodedText) {
-      // Stop scanner immediately to avoid duplicates
-      scanner.clear().then(() => {
+      // Stop scanner immediately
+      html5Qr.stop().then(() => {
         logScan(decodedText);
       }).catch(err => console.error("Failed to stop scanner", err));
     }
 
     function startScanner() {
-      scanner.render(onScanSuccess, () => { /* ignore failures */ });
+      if (!html5Qr) {
+        html5Qr = new Html5Qrcode("reader");
+      }
+      if (currentCameraId) {
+        html5Qr.start(
+          currentCameraId,
+          { fps: 10, qrbox: 250 },
+          onScanSuccess,
+          () => { /* ignore scan failures */ }
+        );
+      } else {
+        // First time: get camera ID
+        Html5Qrcode.getCameras().then(devices => {
+          if (devices && devices.length) {
+            currentCameraId = devices[0].id;
+            html5Qr.start(
+              currentCameraId,
+              { fps: 10, qrbox: 250 },
+              onScanSuccess,
+              () => { }
+            );
+          }
+        }).catch(err => console.error("No cameras found", err));
+      }
     }
 
     window.onload = () => {
-      scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
       startScanner();
     };
   </script>
